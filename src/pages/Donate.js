@@ -10,7 +10,7 @@ import { registerDonor } from '../api';
 import toast from 'react-hot-toast';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 
 function Donate() {
   const [loading, setLoading] = useState(false);

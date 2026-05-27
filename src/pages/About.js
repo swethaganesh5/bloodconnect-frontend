@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+
 
 const team = [
   {
