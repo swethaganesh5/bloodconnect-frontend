@@ -210,7 +210,7 @@ export default function RequestBlood() {
                     <Box>
                       <Typography fontWeight={700} fontSize="0.95rem">{donor.name}</Typography>
                       <Typography fontSize="0.82rem" color="text.secondary">
-                        {donor.bloodGroup} • {donor.distanceKm > 0 ? `${donor.distanceKm} km away` : 'Location not set'}
+                        {donor.bloodGroup} • 📞 {donor.phone}
                       </Typography>
                     </Box>
                     <Chip label={donor.bloodGroup} size="small"
