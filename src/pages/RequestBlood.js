@@ -19,12 +19,8 @@ const urgencyOptions = [
 
 const Label = ({ children, required }) => (
   <Typography sx={{
-    fontWeight: 800,
-    fontSize: '0.97rem',
-    color: '#1a1a1a',
-    mb: 1,
-    display: 'block',
-    letterSpacing: '-0.1px',
+    fontWeight: 800, fontSize: '0.97rem', color: '#1a1a1a',
+    mb: 1, display: 'block', letterSpacing: '-0.1px',
   }}>
     {children}
     {required && <span style={{ color: '#C62828', marginLeft: 4 }}>*</span>}
@@ -33,17 +29,16 @@ const Label = ({ children, required }) => (
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
-    borderRadius: 2,
-    fontSize: '0.97rem',
-    bgcolor: 'white',
+    borderRadius: 2, fontSize: '0.97rem', bgcolor: 'white',
   },
 };
 
 export default function RequestBlood() {
-  const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
+  const [loading,       setLoading]       = useState(false);
+  const [success,       setSuccess]       = useState(false);
+  const [locating,      setLocating]      = useState(false);
+  const [mapReady,      setMapReady]      = useState(false);
+  const [matchedDonors, setMatchedDonors] = useState([]);
   const mapRef     = useRef(null);
   const leafletRef = useRef(null);
   const markerRef  = useRef(null);
@@ -60,19 +55,16 @@ export default function RequestBlood() {
   // ── MAP INIT ──
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return;
-
     if (!document.querySelector('#leaflet-css')) {
       const link = document.createElement('link');
       link.id = 'leaflet-css'; link.rel = 'stylesheet';
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
       document.head.appendChild(link);
     }
-
     const makeIcon = () => window.L.divIcon({
       html: `<div style="width:22px;height:22px;background:#C62828;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>`,
       iconSize: [22, 22], iconAnchor: [11, 22], className: '',
     });
-
     const initMap = () => {
       try {
         if (!window.L || leafletRef.current) return;
@@ -98,7 +90,6 @@ export default function RequestBlood() {
         setMapReady(true);
       } catch (err) { console.error(err); }
     };
-
     if (window.L) { initMap(); }
     else if (!document.querySelector('#leaflet-js')) {
       const script = document.createElement('script');
@@ -151,7 +142,8 @@ export default function RequestBlood() {
     }
     setLoading(true);
     try {
-      await createBloodRequest(form);
+      const res = await createBloodRequest(form);
+      setMatchedDonors(res.data.matchedDonors || []);
       setSuccess(true);
       toast.success('Request sent! Donors are being notified.');
     } catch { toast.error('Failed. Check if backend is running.'); }
@@ -160,6 +152,7 @@ export default function RequestBlood() {
 
   const resetForm = () => {
     setSuccess(false);
+    setMatchedDonors([]);
     setForm({ patientName:'', bloodGroup:'', hospital:'', phone:'', urgency:'', unitsRequired:'1', notes:'', latitude:'', longitude:'', city:'' });
     if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
     if (leafletRef.current) leafletRef.current.setView([20.5937, 78.9629], 5);
@@ -178,6 +171,8 @@ export default function RequestBlood() {
             Nearest <strong style={{ color: '#C62828' }}>{form.bloodGroup}</strong> donors near{' '}
             <strong>{form.hospital}</strong> are being notified by email right now.
           </Typography>
+
+          {/* ── Request Summary ── */}
           <Card sx={{ borderRadius: 3, border: '1px solid #FFEBEE', boxShadow: 'none', mb: 3, textAlign: 'left' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#C62828', mb: 2 }}>
@@ -199,6 +194,41 @@ export default function RequestBlood() {
               ))}
             </CardContent>
           </Card>
+
+          {/* ── Matched Donors List ── */}
+          {matchedDonors.length > 0 ? (
+            <Card sx={{ borderRadius: 3, border: '1px solid #E3F2FD', boxShadow: 'none', mb: 3, textAlign: 'left' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1565C0', mb: 2 }}>
+                  🩸 {matchedDonors.length} Eligible Donor{matchedDonors.length > 1 ? 's' : ''} Notified
+                </Typography>
+                {matchedDonors.map((donor, i) => (
+                  <Box key={i} sx={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    py: 1.5, borderBottom: i < matchedDonors.length - 1 ? '1px solid #f5f5f5' : 'none'
+                  }}>
+                    <Box>
+                      <Typography fontWeight={700} fontSize="0.95rem">{donor.name}</Typography>
+                      <Typography fontSize="0.82rem" color="text.secondary">
+                        {donor.bloodGroup} • {donor.distanceKm > 0 ? `${donor.distanceKm} km away` : 'Location not set'}
+                      </Typography>
+                    </Box>
+                    <Chip label={donor.bloodGroup} size="small"
+                      sx={{ bgcolor: '#C62828', color: 'white', fontWeight: 800 }} />
+                  </Box>
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card sx={{ borderRadius: 3, border: '1px solid #FFF3E0', boxShadow: 'none', mb: 3 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#E65100' }}>
+                  ⚠️ No matching donors found nearby. Try registering more donors or expanding the search area.
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
           <Button fullWidth variant="contained" onClick={resetForm}
             sx={{ bgcolor: '#C62828', py: 1.6, borderRadius: 2.5, fontWeight: 700, fontSize: '1rem', textTransform: 'none', '&:hover': { bgcolor: '#8E0000' } }}>
             Submit Another Request
@@ -243,7 +273,7 @@ export default function RequestBlood() {
         </Box>
       </Box>
 
-      {/* ── FORM CARD — centered like Donate page ── */}
+      {/* ── FORM CARD ── */}
       <Box sx={{ maxWidth: 780, mx: 'auto', px: { xs: 2, md: 4 }, py: 5 }}>
         <Card sx={{ borderRadius: 4, boxShadow: '0 4px 30px rgba(0,0,0,0.09)', border: '1px solid #FFEBEE' }}>
           <CardContent sx={{ p: { xs: 3, md: 5 } }}>
@@ -255,7 +285,6 @@ export default function RequestBlood() {
               Fields marked <span style={{ color: '#C62828', fontWeight: 800 }}>*</span> are required
             </Typography>
 
-            {/* ── Patient Name ── */}
             <Box mb={3.5}>
               <Label required>Patient Name</Label>
               <TextField fullWidth placeholder="Full name of the patient"
@@ -263,7 +292,6 @@ export default function RequestBlood() {
                 onChange={handleChange} sx={inputSx} />
             </Box>
 
-            {/* ── Blood Group + Units ── */}
             <Grid container spacing={3} mb={3.5}>
               <Grid item xs={12} sm={6}>
                 <Label required>Blood Group</Label>
@@ -283,7 +311,6 @@ export default function RequestBlood() {
               </Grid>
             </Grid>
 
-            {/* ── Hospital ── */}
             <Box mb={3.5}>
               <Label required>Hospital Name</Label>
               <TextField fullWidth placeholder="e.g. Apollo Hospital, Chennai"
@@ -291,7 +318,6 @@ export default function RequestBlood() {
                 onChange={handleChange} sx={inputSx} />
             </Box>
 
-            {/* ── Phone ── */}
             <Box mb={3.5}>
               <Label required>Contact Phone</Label>
               <TextField fullWidth placeholder="10-digit mobile number"
@@ -300,7 +326,6 @@ export default function RequestBlood() {
                 inputProps={{ maxLength: 10 }} sx={inputSx} />
             </Box>
 
-            {/* ── Urgency ── */}
             <Box mb={3.5}>
               <Label required>Urgency Level</Label>
               <Grid container spacing={2}>
@@ -327,13 +352,11 @@ export default function RequestBlood() {
               </Grid>
             </Box>
 
-            {/* ── Location + Map ── */}
             <Box mb={3.5}>
               <Label required>Hospital Location</Label>
               <Typography variant="body2" color="text.secondary" mb={1.5} fontSize="0.88rem">
                 Click anywhere on the map to pin, or use the auto-detect button below
               </Typography>
-
               <Button fullWidth variant="outlined"
                 onClick={detectLocation} disabled={locating}
                 startIcon={locating ? <CircularProgress size={16} color="inherit" /> : <MyLocationIcon />}
@@ -345,13 +368,10 @@ export default function RequestBlood() {
                   bgcolor: form.latitude ? '#F1F8E9' : 'transparent',
                   '&:hover': { bgcolor: form.latitude ? '#E8F5E9' : '#FFF5F5' },
                 }}>
-                {locating
-                  ? 'Detecting your location...'
-                  : form.latitude
-                    ? `✓  ${form.city || 'Location pinned'} — click map to change`
-                    : 'Auto Detect My Location'}
+                {locating ? 'Detecting your location...'
+                  : form.latitude ? `✓  ${form.city || 'Location pinned'} — click map to change`
+                  : 'Auto Detect My Location'}
               </Button>
-
               <Box sx={{
                 borderRadius: 3, overflow: 'hidden', height: 260,
                 border: form.latitude ? '2px solid #C62828' : '2px solid #ddd',
@@ -377,7 +397,6 @@ export default function RequestBlood() {
               </Box>
             </Box>
 
-            {/* ── Notes ── */}
             <Box mb={4}>
               <Typography sx={{ fontWeight: 800, fontSize: '0.97rem', color: '#1a1a1a', mb: 1 }}>
                 Additional Notes
@@ -389,7 +408,6 @@ export default function RequestBlood() {
                 onChange={handleChange} sx={inputSx} />
             </Box>
 
-            {/* ── What happens next ── */}
             <Box sx={{ bgcolor: '#FFF8F8', borderRadius: 3, p: 3, mb: 3.5, border: '1px solid #FFCDD2' }}>
               <Typography sx={{ fontWeight: 900, fontSize: '0.97rem', color: '#C62828', mb: 2 }}>
                 ⚡ What happens after you submit?
@@ -420,7 +438,6 @@ export default function RequestBlood() {
               </Grid>
             </Box>
 
-            {/* ── Compatibility ── */}
             <Box sx={{ bgcolor: '#fafafa', borderRadius: 3, p: 3, mb: 4, border: '1px solid #eee' }}>
               <Typography sx={{ fontWeight: 900, fontSize: '0.97rem', color: '#C62828', mb: 2 }}>
                 🩸 Quick Blood Compatibility
@@ -445,7 +462,6 @@ export default function RequestBlood() {
               </Grid>
             </Box>
 
-            {/* ── No Login Notice ── */}
             <Box sx={{ bgcolor: '#E8F5E9', borderRadius: 3, p: 2.5, border: '1px solid #C8E6C9', mb: 4 }}>
               <Typography sx={{ fontWeight: 900, fontSize: '0.92rem', color: '#2E7D32', mb: 0.5 }}>
                 ✅ No Login Required
@@ -455,7 +471,6 @@ export default function RequestBlood() {
               </Typography>
             </Box>
 
-            {/* ── SUBMIT BUTTON ── */}
             <Button fullWidth variant="contained"
               onClick={handleSubmit} disabled={loading}
               sx={{
